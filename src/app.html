@@ -1,0 +1,19 @@
+<template>
+  <require from="./map-journeyguide"></require> 
+  <require from="./journey-guide"></require>
+
+  <div class="container">
+    <input value.bind="latitude" />
+    <input value.bind="longitude" />
+    <button type="button" click.delegate="callChild()">text</button>
+
+    <div class="jg-map">
+      <map-journeyguide view-model.ref="mapModel"></map-journeyguide>
+    </div>
+    <div class="j-guide">
+      <journey-guide></journey-guide>
+    </div>
+
+    
+  </div>
+</template>
