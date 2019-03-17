@@ -22,4 +22,19 @@ export class App {
         this.ea.publish(new positionEvent(this.latitude, this.longitude));
         console.log(this.client);
     }
+
+    setupClient(){
+      this.client
+    }
+
+    onMessageArrive(message: pahoMqtt.Message){
+      switch(message.designation){
+        case "my_topic":
+          this.handleRMC(JSON.parse(message.payloadString));
+      }
+    }
+
+    handleRMC(rmc){
+      console.log(rmc);
+    }
 }
