@@ -51,7 +51,7 @@ body {
     position: absolute;
     z-index: 2;
     top: 450px;  
-    left: 650px;
+    left: 0px;
     overflow: hidden;
     width: 650px;
     height: 250px;
@@ -206,8 +206,11 @@ body {
   }
   
   .journey-guide-content{
+    position: relative;
+    background: rgb(89, 93, 111); 
     height: 90%;  
     overflow-y: scroll;  
+    z-index: 3;
   }
   
   ::-webkit-scrollbar{

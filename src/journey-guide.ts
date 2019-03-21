@@ -1,6 +1,6 @@
 import {EventAggregator} from 'aurelia-event-aggregator';
 import {inject} from 'aurelia-framework';
-import * as events from './events';
+//import * as events from './events';
 //import $ from 'bootstrap';
 //import $ from 'jquery';
 
@@ -8,6 +8,10 @@ declare var $;
 
 @inject(EventAggregator)
 export class JourneyGuide{
+
+    //InfoWindow
+    infoWinOpen;
+    infoWindowStop: InfoWindowStop;
 
     //Header
     lineNumber: string = "";
@@ -68,13 +72,6 @@ export class JourneyGuide{
 
 
     constructor(private ea: EventAggregator){
-        ea.subscribe(events.setHeaderEvent, msg => this.setHeader(msg.lineNumber, msg.lineName));
-        ea.subscribe(events.setHeaderInfoEvent, msg => this.setHeaderInfo(msg.time, msg.meters));
-        ea.subscribe(events.setPreviousStopEvent, msg => this.setPreviousStop(msg.data));
-        ea.subscribe(events.setNextStopEvent, msg => this.setNextStop(msg.data));
-        ea.subscribe(events.setSecondStopEvent, msg => this.setSecondStop(msg.data));
-        ea.subscribe(events.setThirdStopEvent, msg => this.setThirdStop(msg.data));
-        ea.subscribe(events.atStopEvent, msg => this.atStop(msg.atStop));
     }
 
     setHeader(lineNumber, lineName){
@@ -85,6 +82,10 @@ export class JourneyGuide{
     setHeaderInfo(time, meters){
         this.timeSchedule = time;
         this.metersLeft = meters;
+    }
+
+    setTimeSchedule(time){
+        this.timeSchedule = time;
     }
 
     setPreviousStop(data){
@@ -186,12 +187,79 @@ export class JourneyGuide{
     }
 
     atStop(atStop){
+        this.infoWinOpen = atStop;
         if(atStop){
             this.contentMoverCss = "height: 100px;";
         }else{
             this.contentMoverCss = "height: 0px;";
+        }        
+    }
+
+    arrivedAtStop(){
+        //console.log(this.infoWindowStop);
+        //this.updateInfoWindow();
+        //this.openInfoWindow();
+        this.atStop(true);
+    }
+
+    departuredFromStop(){        
+        this.atStop(false);
+    }
+
+    updateServiceJourney(details){
+        this.setHeader(details.line.name, details.line.designation);        
+    }
+
+    setInfoWindowStop(holdReason, holdUntil, interconnections){
+        this.infoWindowStop = new InfoWindowStop(holdReason, holdUntil, interconnections);
+    }
+
+    openInfoWindow(){
+        var spInfo = document.getElementById("stopPointInfo");
+        var positionInfo = spInfo.getBoundingClientRect();
+        console.log(positionInfo);
+        var currentLeft = Math.round(positionInfo.x);
+    
+        if (currentLeft > 649){
+            $("#stopPointInfo").css("left", -650);
+            this.infoWinOpen = true;
+        }  
+    }
+
+    closeInfoWindow(){
+        var spInfo = document.getElementById("stopPointInfo");
+        var positionInfo = spInfo.getBoundingClientRect();
+        var currentLeft = Math.round(positionInfo.x);
+    
+        if (currentLeft < 650){
+            $("#stopPointInfo").css("left", 650);
+            this.infoWinOpen = false;
+        }  
+    }
+
+}
+
+class InfoWindowStop{
+    holdReason;
+    time;
+    interconnections;
+
+    constructor(holdReason, time, interconnections){
+        this.holdReason = holdReason;
+        this.time = time;
+        this.interconnections = "";
+        if(interconnections){
+            this.interconnections = this.parseInterConnections(interconnections);
         }
         
     }
 
+    parseInterConnections(interconnections){
+        var res = [];
+        for(var i = 0; i < interconnections.length; i++){
+            var ic = interconnections[i];
+            res.push([ic.transportModeCode, ic.maxWaitingUntilTime, ic.lineDesignation, ic.directionName]);
+        }
+        return res;
+    }
 }

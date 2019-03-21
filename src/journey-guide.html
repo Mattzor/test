@@ -1,6 +1,13 @@
 <template>
     <require from="./style.css"></require>
-    <div class="journeyguide-header">
+        <div id="stopPointInfo" class="stoppoint-info">				
+            <div class="stoppoint-info-content">					
+                <div class="time-count-down"></div>
+                <div class="sp-header"></div>
+                <div class="interconnections"></div>
+            </div>		
+        </div>
+        <div class="journeyguide-header">
             <div class="header-text">
                 <span id="header-line-num" class="header-line-number">${lineNumber}</span>
                 <span id="header-line-text">${lineName}</span>

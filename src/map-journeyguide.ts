@@ -2,6 +2,7 @@ import {inject} from 'aurelia-framework';
 import {EventAggregator} from 'aurelia-event-aggregator';
 import * as events from './events';
 import * as m from 'mapbox-gl';
+import * as _ from 'underscore';
 import { map } from 'bluebird';
 
 @inject(EventAggregator)
@@ -16,13 +17,15 @@ export class MapJourneyguide{
 
     demo = false;
     layers = [];
+    routes = [];
+    markers = [];
+
+    blue = "#0000FF";
+    yellow = "#F0F000";
+    red = "#FF0000";
+    grey = "#A0A0A0";
 
     constructor(ea: EventAggregator){
-        ea.subscribe(events.positionEvent, msg => this.updateMap(msg.latitude, msg.longitude, msg.heading, msg.speed));
-        ea.subscribe(events.pitchEvent, msg => this.map.setPitch(msg.pitch));
-        ea.subscribe(events.addMarkerEvent, msg => this.addMarker(msg.latitude, msg.longitude));
-        ea.subscribe(events.addLayerEvent, msg => this.addLayer(msg.layer));
-        ea.subscribe(events.removeAllLayersEvent, msg => this.removeAllLayers());
     }
 
     attached(){
@@ -32,7 +35,7 @@ export class MapJourneyguide{
             style: 'mapbox://styles/mapbox/streets-v9',
             center: [11.822119, 58.055952],
             zoom: 18
-        });
+        });        
     }
 
     updateMap(latitude: number, longitude: number, heading: number, speed: number){        
@@ -115,6 +118,104 @@ export class MapJourneyguide{
             this.layers.push(layer.id);
         }
     }
+    
+    addStopMarkers(calls){
+        for(var i = 0; i < calls.length; i++){
+            var call = calls[i];
+            var location = call.journeyPatternPoint.location;
+            var ele = document.createElement("div");
+            ele.className = "temp-marker";
+            var stopMarker = new m.Marker(ele).setLngLat([location.longitude, location.latitude]).addTo(this.map.mapGL);
+            this.markers.push({"seqNum": i, "marker": stopMarker});
+            if(call.replacedJourneyPatternPoint){                
+                location = call.replacedJourneyPatternPoint.location;
+                ele = document.createElement("div");
+                ele.className = "temp-marker-cancelled";
+                new m.Marker(ele).setLngLat([location.longitude, location.latitude]).addTo(this.map.mapGL);
+            }
+        }
+    }
+
+    drawJourneyPath(calls){        
+        for(var i = 0; i < calls.length; i++){
+            var call = calls[i];
+            var pathColor = this.blue;
+           
+            if(call.detourEnroute){
+                pathColor = this.grey;
+            }
+
+            if(call.journeyPatternPoint.pathFromPrevious){                       
+                this.addDrivingPath("route", pathColor, call.sequenceNumber, call.journeyPatternPoint.pathFromPrevious.coordinates);
+            }           
+
+            if(call.detourEnroute){
+                this.addDrivingPath("detour", this.blue, call.sequenceNumber, call.detourEnroute.path.coordinates)
+            }
+        }
+    }
+
+    addDrivingPath(routeType, routeColor, sequenceNumber, coordinates){        
+        var routeName = routeType + sequenceNumber.toString();
+        var currentLayer = this.map.mapGL.getLayer(routeName);
+
+        if(!currentLayer){            
+            var routeFeature = {
+                "type": "FeatureCollection",
+                "features": [{
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": this.flipCoords(coordinates)
+                    }
+                }]
+            }
+            this.map.mapGL.addLayer({
+                "id": routeName,
+                "type": "line",
+                "source": {
+                    "type": "geojson",
+                    "data": routeFeature
+                },
+                "layout": {
+                    "line-join": "round",
+                    "line-cap": "round"
+                },
+                "paint": {
+                    "line-color": routeColor,
+                    "line-width": 6
+                }
+            });
+
+            this.routes.push(routeName);
+        }else{
+            var route = this.map.mapGL.getSource(routeName)._data.features[0].geometry.coordinates;
+            var coords = this.flipCoords(coordinates);
+            if(!_.isEqual(route, coords)){                
+                var routeFeature = {
+                    "type": "FeatureCollection",
+                    "features": [{
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "LineString",
+                            "coordinates": this.flipCoords(coordinates)
+                        }
+                    }]
+                }
+                this.map.mapGL.getSource(routeName).setData(routeFeature);
+            }
+        }
+    }
+
+    flipCoords(coordinateArray){
+        var res = []
+        for(var i = 0; i < coordinateArray.length; i++){
+            var coords = coordinateArray[i];            
+            res.push([coords[1], coords[0]]);
+        }
+        return res;
+    }
+
 
     removeLayer(id){
         if(this.map.getLayer(id)){
@@ -131,5 +232,16 @@ export class MapJourneyguide{
             this.removeLayer(id);
         }
         this.layers = [];
+    }
+
+    removeStopMarkers(){        
+        for(var i = 0; i < this.markers.length; i++){
+            this.markers[i].marker.remove();
+        }
+    }
+
+    clearMap(){
+        this.removeAllLayers();
+        this.removeStopMarkers();
     }
 }

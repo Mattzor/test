@@ -20,6 +20,7 @@
     "mapbox-gl": "^0.53.1",
     "mqtt": "^2.18.8",
     "paho-mqtt": "^1.1.0",
+    "underscore": "^1.9.1",
     "whatwg-fetch": "^2.0.3"
   },
   "peerDependencies": {},

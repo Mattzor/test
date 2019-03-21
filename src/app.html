@@ -36,7 +36,7 @@
            
 
             <div id="journeyguide">
-                <journey-guide></journey-guide>
+                <journey-guide view-model.ref="infoView"></journey-guide>
             </div>
         
         </div>
@@ -47,7 +47,7 @@
             <button type="button" click.delegate="journeyStart()">Tur Start, innan första hållplatsen</button>
             <div class="state-buttons-inline">
               <button type="button" click.delegate="atFirstStop()">Turstart, Första Hållplatsen</button>
-              <button type="button" onclick="firstStopInfoWindow()">Toggla inforuta</button>
+              <button type="button" click.delegate="firstStopInfoWindow()">Toggla inforuta</button>
             </div>
             <button type="button" click.delegate="drivingBetweenStops()">Körning, mellan hållplatser</button>
             <button type="button" click.delegate="atSecondStop()">Andra Hållplatsen</button>

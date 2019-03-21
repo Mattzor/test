@@ -4,6 +4,7 @@ import {PLATFORM} from 'aurelia-pal';
 import * as events from './events';
 import * as pahoMqtt from 'paho-mqtt';
 
+declare var $;
 
 @inject(EventAggregator)
 export class App{
@@ -13,35 +14,48 @@ export class App{
     longitude: any;
     client: any;
 
+    //
+    atStop;
+    details;
+    expectedCall;
+    expectedCallNotHandeled;
+    vehicleJourneyRef;
+    journeyState;
+    lineNumber;
+    journey;
+    callSequenceNumber;
+
+
     mqttbrokerClientId = "journeyguideclient3";
     // Local broker
     localhost = "127.0.0.1";
     localport = 9001;
-    tobsSensorsGnssRmc = "tobs/sensors/gnss/rmc";
-    tobsCurrentVehicleJourneyCallEvent = "tobs/current_vehicle_journey/call_event";
-    tobsCurrentVehicleJourneyDetails = "tobs/current_vehicle_journey/details";
-    tobsCurrentVehicleJourneyLinkProgress = "tobs/current_vehicle_journey/link_progress";
-    tobsCurrentVehicleJourneyExpectedCall = "tobs/current_vehicle_journey/expected_call";
-    tobsCurrentVehicleJourneyState = "tobs/current_vehicle_journey/state";
+    static tobsSensorsGnssRmc = "tobs/sensors/gnss/rmc";
+    static tobsCurrentVehicleJourneyCallEvent = "tobs/current_vehicle_journey/call_event";
+    static tobsCurrentVehicleJourneyDetails = "tobs/current_vehicle_journey/details";
+    static tobsCurrentVehicleJourneyLinkProgress = "tobs/current_vehicle_journey/link_progress";
+    static tobsCurrentVehicleJourneyExpectedCall = "tobs/current_vehicle_journey/expected_call";
+    static tobsCurrentVehicleJourneyState = "tobs/current_vehicle_journey/state";
     
     // Vehiclereplicator
     username = "hogiacommunications";  
     pass = "Hogia6969";  
     mqttbrokerHost = "mosquittoserver.westeurope.cloudapp.azure.com";  
     mqttbrokerWebsocketPort = 9001;  
-    //var topic = "/replicator/arriva/#";
+    //topic = "/replicator/arriva/#";
     topic = "/replicator/hogiacommunications/#"; 
 
 
     //demo 
     demoState: string = "";
+    countDown;
 
     mapModel: any;
+    infoView: any;
 
     constructor(private ea: EventAggregator){ 
       App.eas = ea;
       App.app = this;
-      //ea.subscribe(events.vrMessage, msg =>this.parseVehicleReplicatorMessage(msg.message));
     }
 
     attached(){
@@ -53,10 +67,10 @@ export class App{
       if(this.client){
         try{
           this.client.unsubscribe(this.topic);      
-          this.client.unsubscribe(this.tobsSensorsGnssRmc);
-          this.client.unsubscribe(this.tobsCurrentVehicleJourneyLinkProgress);
-          this.client.unsubscribe(this.tobsCurrentVehicleJourneyExpectedCall);
-          this.client.unsubscribe(this.tobsCurrentVehicleJourneyState);
+          this.client.unsubscribe(App.tobsSensorsGnssRmc);
+          this.client.unsubscribe(App.tobsCurrentVehicleJourneyLinkProgress);
+          this.client.unsubscribe(App.tobsCurrentVehicleJourneyExpectedCall);
+          this.client.unsubscribe(App.tobsCurrentVehicleJourneyState);
         }catch(error){
           console.log(error);
         }
@@ -159,7 +173,6 @@ export class App{
       // Once a connection has been made, make a subscription and send a message.
       console.log("in onConnect");    
       console.log(obj);
-      //console.log("Connected to: " + this.mqttbrokerHost + ":" +  this.mqttbrokerWebsocketPort.toString());  
       var options = {
           qos: 2
       }
@@ -183,75 +196,252 @@ export class App{
       
       switch(message.destinationName){
   
-          case this.tobsSensorsGnssRmc:
-              this.handleRmc(JSON.parse(message.payloadString));  
+          case App.tobsSensorsGnssRmc:
+              App.app.handleRmc(JSON.parse(message.payloadString));  
               break;
   
-          case this.tobsCurrentVehicleJourneyCallEvent:
-              this.handleCallEvent(JSON.parse(message.payloadString));
+          case App.tobsCurrentVehicleJourneyCallEvent:
+              App.app.handleCallEvent(JSON.parse(message.payloadString));
               break;
   
-          case this.tobsCurrentVehicleJourneyDetails:
-              this.handleDetails(JSON.parse(message.payloadString));
+          case App.tobsCurrentVehicleJourneyDetails:
+              App.app.handleDetails(JSON.parse(message.payloadString));
               break;
   
-          case this.tobsCurrentVehicleJourneyExpectedCall:
-              this.handleExpectedCall(JSON.parse(message.payloadString));
+          case App.tobsCurrentVehicleJourneyExpectedCall:
+              App.app.handleExpectedCall(JSON.parse(message.payloadString), false);
               break;
   
-          case this.tobsCurrentVehicleJourneyLinkProgress:
-              this.handleLinkProgress(JSON.parse(message.payloadString));
+          case App.tobsCurrentVehicleJourneyLinkProgress:
+              App.app.handleLinkProgress(JSON.parse(message.payloadString));
               break;
   
-          case this.tobsCurrentVehicleJourneyState:
-              this.handleStateMessage(JSON.parse(message.payloadString));
+          case App.tobsCurrentVehicleJourneyState:
+              App.app.handleStateMessage(JSON.parse(message.payloadString));
               break;
   
           default:
               console.log("Ignored message on: " + message.destinationName);
               break;
       }
-  }
+    }
 
-    handleRmc(rmc){
-      console.log(rmc);
+    handleRmc(rmcJson){
+      console.log(rmcJson);
+      var rmcStr = rmcJson.rmc;  
+      var rmcParts = rmcStr.split(",");  
+  
+      if(rmcParts[3]){
+        var lat = this.convertLatitude(rmcParts[3]);
+      }
+      if(rmcParts[5]){
+        var lng = this.convertLongitude(rmcParts[5]);
+      }
+      if(rmcParts[7]){
+        var speed = parseFloat(rmcParts[7]);
+      }
+      if(rmcParts[8]){
+        var direction = parseFloat(rmcParts[8]);  
+      }    
+      this.mapModel.updateMap(lat, lng, direction, speed);  
     }
 
     handleCallEvent(callEvent){}
 
-    handleDetails(details){}
-    handleExpectedCall(expectedCall){}
+    handleDetails(details){
+      console.log(details);
+         
+      if(JSON.stringify(details) === JSON.stringify(this.details)){
+          return;
+      }
+
+      this.details = details;
+
+      this.infoView.updateServiceJourney(this.details);
+
+      if(details.vehicleJourneyRef != this.details.vehicleJourneyRef){
+          this.mapModel.clearMap();
+      }    
+      this.mapModel.drawJourneyPath(this.details.calls);
+      this.mapModel.addStopMarkers(this.details.calls);
+
+      if(this.expectedCall && this.expectedCallNotHandeled && this.expectedCall.vehicleJourneyRef === details.vehicleJourneyRef){
+          this.handleExpectedCall(this.expectedCall, true);
+      }
+    }
+
+    handleExpectedCall(expectedCall, forceUpdate){
+      console.log(expectedCall);
+      if(forceUpdate){
+          console.log("Force update expected call");
+      }
+
+      if(JSON.stringify(expectedCall) === JSON.stringify(this.expectedCall) && !forceUpdate){
+          console.log("No changes in expected call");
+          return;
+      }
+
+      this.expectedCall = expectedCall;
+      this.vehicleJourneyRef = expectedCall.vehicleJourneyRef;
+      this.journeyState = expectedCall.state;
+      this.lineNumber = this.vehicleJourneyRef.substring(7,11);
+      this.journey = this.vehicleJourneyRef.substring(11);
+      
+      if(!this.details || this.details.vehicleJourneyRef !== expectedCall.vehicleJourneyRef){
+          console.log("Unhandled expected call");
+          this.expectedCallNotHandeled = true;
+          return;
+      }
+
+      this.expectedCallNotHandeled = false;
+      
+      
+      if(expectedCall.callSequenceNumber != this.callSequenceNumber || forceUpdate){        
+          if(forceUpdate){
+              console.log("Force update stops");
+          }
+          this.callSequenceNumber = expectedCall.callSequenceNumber;
+          this.updateStops(expectedCall);
+      }
+      
+      if(expectedCall.atStop != this.atStop){
+          if(expectedCall.atStop){
+              this.atStop = expectedCall.atStop;
+              this.infoView.arrivedAtStop();
+          }else{
+              this.atStop = expectedCall.atStop;
+              this.infoView.departuredFromStop();
+          }
+      }       
+
+      if(expectedCall.holdReason){
+
+          switch(expectedCall.holdReason){
+
+              case "CONNECTION_PROTECTION":
+                  var interConnections = this.getInterConnections(expectedCall.callSequenceNumber);
+                  this.infoView.setInfoWindowStop(expectedCall.holdReason, expectedCall.holdUntil, interConnections);
+                  break;
+              /*case "DRIVER_CHANGE":
+                  infoView.setInfoWindowStop(expectedCall.holdReason, expectedCall.holdUntil, null);
+                  break;
+              case "TIMINGPOINT":
+                  infoView.setInfoWindowStop(expectedCall.holdReason, expectedCall.holdUntil, null);
+                  break;
+            */
+              default:
+                  this.infoView.setInfoWindowStop(expectedCall.holdReason, expectedCall.holdUntil, null);
+                  break;
+          }
+
+          this.infoView.addHold(expectedCall.callSequenceNumber, expectedCall.holdReason, expectedCall.holdUntil);
+      }
+
+      if(expectedCall.restriction){
+          
+      }
+      
+      this.infoView.setTimeSchedule(expectedCall.serviceDeviation);
+
+    }
+
+    getInterConnections(callSequenceNumber){
+      for(var i = 0; i < this.details.calls.length; i++){
+          if(this.details.calls[i].sequenceNumber === callSequenceNumber){                
+              if (this.details.calls[i].fetcherConnections){
+                  return this.details.calls[i].fetcherConnections;
+              }
+              return "";
+          }
+      }
+    }
+
+    updateStops(expectedCall){
+      if(!this.details){        
+          return;
+      }
+  
+      var seqNum = expectedCall.callSequenceNumber
+      var holdReason = null;
+      var holdUntil = null;
+      if(expectedCall.holdReason){
+          holdReason = expectedCall.holdReason;
+      }
+      if(expectedCall.holdUntil){
+          holdUntil = expectedCall.holdUntil;
+      }
+  
+      var prev = seqNum - 2;
+      var next = seqNum - 1;
+      var second = seqNum;
+      var third = seqNum + 1;
+      var numOfCalls = this.details.calls.length;
+      
+      var prevCall = null;
+      var nextCall = null;
+      var secondCall = null;
+      var thirdCall = null;
+  
+      if(seqNum <= numOfCalls){
+          if(prev >= 0){
+              prevCall = this.details.calls[prev];
+          }
+          if(next <= numOfCalls){
+              nextCall = this.details.calls[next];   
+          }
+          if(second < numOfCalls){
+              secondCall = this.details.calls[second];            
+          }
+          if(third < numOfCalls){
+              thirdCall = this.details.calls[third];            
+          }
+      }
+  
+      this.infoView.updatePreviousStop(prevCall);
+      this.infoView.updateNextStop(nextCall, holdReason, holdUntil);
+      this.infoView.updateSecondStop(secondCall);
+      this.infoView.updateThirdStop(thirdCall);
+    }
     handleLinkProgress(linkProgress){}
     handleStateMessage(state){}
 
 
     onConnectLocal(){
       console.log("Connection success!");
-      this.client.subscribe(this.tobsSensorsGnssRmc);
+      App.app.client.subscribe(App.tobsSensorsGnssRmc);
       //client.subscribe(tobsCurrentVehicleJourneyCallEvent);
-      this.client.subscribe(this.tobsCurrentVehicleJourneyDetails);
+      App.app.client.subscribe(App.tobsCurrentVehicleJourneyDetails);
       //client.subscribe(tobsCurrentVehicleJourneyState);
-      this.client.subscribe(this.tobsCurrentVehicleJourneyLinkProgress);
-      this.client.subscribe(this.tobsCurrentVehicleJourneyExpectedCall);
+      App.app.client.subscribe(App.tobsCurrentVehicleJourneyLinkProgress);
+      App.app.client.subscribe(App.tobsCurrentVehicleJourneyExpectedCall);
     }
+
+
+    convertLatitude(latitude){
+      var deg = parseFloat(latitude.substring(0, 2));
+      var min = parseFloat(latitude.substring(2));  
+      var res = deg + min/60;  
+      return res;
+    }
+      
+    convertLongitude(longitude){
+        var deg = parseFloat(longitude.substring(0,3));
+        var min = parseFloat(longitude.substring(3));  
+        var res = deg + min/60;
+        return res;
+    }
+    // Demo functions, put in a new child?
 
     journeyStart(){     
       this.unsubscribeAllTopics();
       if(this.demoState != "journeyStart"){
           //clearGuideData()
-          //var busCoord1 = [59.314731, 18.003361];
-          //var direction1 = 335;
-
-          //setHeaderData("2", "Sofia");
-          //setStopData(null, stops[0], stops[1], stops[2]);
-          //map.mapGL.setPitch(60);
-          //map.update_map(busCoord1[0], busCoord1[1], direction1, 0, true);
-          this.ea.publish(new events.removeAllLayersEvent());
-          this.ea.publish(new events.pitchEvent(60));
-          this.ea.publish(new events.positionEvent(59.314731, 18.003361, 335, 0));
-          this.ea.publish(new events.setHeaderEvent("2", "Sofia"));
           
-          this.ea.publish(new events.setPreviousStopEvent({
+          this.mapModel.removeAllLayers();
+          this.mapModel.map.setPitch(60);
+          this.mapModel.updateMap(59.314731, 18.003361, 335, 0);
+          this.infoView.setHeader("2", "Sofia");
+          this.infoView.setPreviousStop({
             "stopName": "",
             "time": "",
             "designation": "",
@@ -260,8 +450,8 @@ export class App{
             "isCancelled": "",
             "noBoarding": "",
             "noAlighting": ""
-          }));
-          this.ea.publish(new events.setNextStopEvent({
+          });
+          this.infoView.setNextStop({
             "stopName": "Primusga..",
             "time": "11:00",
             "designation": "",
@@ -270,8 +460,8 @@ export class App{
             "isCancelled": false,
             "noBoarding": false,
             "noAlighting": true
-          }));
-          this.ea.publish(new events.setSecondStopEvent({
+          });
+          this.infoView.setSecondStop({
             "stopName": "Sofiasko..",
             "time": "11:03",
             "designation": "Läge B",
@@ -280,8 +470,9 @@ export class App{
             "isCancelled": false,
             "noBoarding": false,
             "noAlighting": false
-          }));
-          this.ea.publish(new events.setThirdStopEvent({
+          });
+          
+          this.infoView.setThirdStop({
             "stopName": "Mandelpa..",
             "time": "11:07",
             "designation": "Läge A",
@@ -290,22 +481,123 @@ export class App{
             "isCancelled": false,
             "noBoarding": false,
             "noAlighting": false
-          }));
-          this.ea.publish(new events.atStopEvent(false));
+          });
+          this.infoView.atStop(false);
           this.demoState = "journeyStart";
       }
     
     }
 
+    firstStopInfoWindow(){
+      if(this.infoView.infoWinOpen){
+        this.infoView.closeInfoWindow();
+        //clearInfoView();
+      }else{
+        this.setInfoWinFirstStop();
+        this.infoView.openInfoWindow();
+      }
+    }
+
+    setInfoWinFirstStop(){
+      var timeCountDown = '<span class="time-count-down-span">00:59</span>'; 
+      $(".stoppoint-info-content .time-count-down").html(timeCountDown);
+      $(".sp-header").html("<i>TIMING_POINT</i>");
+  
+      this.countDown =  setInterval(function(){
+          
+          var time = $(".time-schedule-span").text();
+          var timeToDrive = $(".time-count-down-span").text();
+  
+          if(!timeToDrive){
+              clearInterval(this.countDown); 
+              this.countDown = null;
+              return;
+          }
+  
+          $(".time-schedule-span").text(this.countDownTime(time));
+          $(".time-count-down-span").text(this.countDownTime(timeToDrive));
+      
+      }, 1000);
+    }    
+
+    countDownTime(time){
+      var min, sec
+      var firstChar = "";
+      var parts = time.split(":");
+  
+      if(parts[0].length > 2)    {
+          firstChar = parts[0].substring(0, 1);
+          min = parseInt(parts[0].substring(1));
+      }else{
+          min = parseInt(parts[0]);
+      }
+  
+      sec = parseInt(parts[1]);
+      
+      if(min === 0 && sec===0){
+          clearInterval(this.countDown);
+          return;
+      }else if(min > 0 && sec == 0){
+          min -= 1;
+          sec = 59;
+      }else{
+          sec -= 1;
+      }
+      var e = "";
+      if(sec < 10){
+          e = "0";
+      }
+      var f = "";
+      if(min < 10){
+          f = "0";
+      }
+      return firstChar + f + min.toString() + ":" + e + sec.toString();
+    }
+  
+    countUpTime(time){
+      var min, sec;
+      var firstChar = "";
+      var parts = time.split(":");
+  
+      if(parts[0].length > 2){
+          firstChar  = parts[0].substring(0, 1);
+          min = parseInt(parts[0].substring(1));
+      }else{
+          min = parseInt(parts[0]);
+      }
+  
+      sec = parseInt(parts[1]);
+  
+      if(sec === 59){
+          min += 1;
+          sec = 0;
+      }else{
+          sec += 1;
+      }
+      var secStr = sec.toString();
+      var minStr = min.toString();
+  
+      if(secStr.length < 2){
+          secStr = "0" + secStr;
+      }
+      if(minStr.length < 2){
+          minStr = "0" + minStr;
+      }
+      return firstChar + minStr + ":" + secStr;
+    }
+    
+
     atFirstStop(){
       this.unsubscribeAllTopics();
       if(this.demoState != "atFirstStop"){
-        this.ea.publish(new events.removeAllLayersEvent());
-        this.ea.publish(new events.pitchEvent(0));
-        this.ea.publish(new events.positionEvent(59.325629, 18.002542, 60, 0));
-        this.ea.publish(new events.setHeaderEvent("2", "Sofia"));
-        this.ea.publish(new events.setHeaderInfoEvent("+01:59", "0m"));
-        this.ea.publish(new events.setPreviousStopEvent({
+        this.mapModel.removeAllLayers();
+        this.mapModel.map.setPitch(0);
+        this.mapModel.updateMap(59.325629, 18.002542, 60, 0);
+
+        this.infoView.setHeader("2", "Sofia");
+        this.infoView.setHeaderInfo("+01:59", "0m");
+
+        this.infoView.setPreviousStop({
           "stopName": "",
           "time": "",
           "designation": "",
@@ -314,8 +606,8 @@ export class App{
           "isCancelled": "",
           "noBoarding": "",
           "noAlighting": ""
-        }));
-        this.ea.publish(new events.setNextStopEvent({
+        });
+        this.infoView.setNextStop({
           "stopName": "Primusga..",
           "time": "11:00",
           "designation": "",
@@ -324,8 +616,8 @@ export class App{
           "isCancelled": false,
           "noBoarding": false,
           "noAlighting": true
-        }));
-        this.ea.publish(new events.setSecondStopEvent({
+        });
+        this.infoView.setSecondStop({
           "stopName": "Sofiasko..",
           "time": "11:03",
           "designation": "Läge B",
@@ -334,8 +626,8 @@ export class App{
           "isCancelled": false,
           "noBoarding": false,
           "noAlighting": false
-        }));
-        this.ea.publish(new events.setThirdStopEvent({
+        });
+        this.infoView.setThirdStop({
           "stopName": "Mandelpa..",
           "time": "11:07",
           "designation": "Läge A",
@@ -344,9 +636,9 @@ export class App{
           "isCancelled": false,
           "noBoarding": false,
           "noAlighting": false
-        }));
-        this.ea.publish(new events.atStopEvent(true));
-        this.ea.publish(new events.addMarkerEvent(59.325642, 18.002937));
+        });
+        this.infoView.atStop(true);
+        this.mapModel.addMarker(59.325642, 18.002937);
         var primusLineCoords = [
           [18.002542, 59.325629], 
           [18.003193, 59.325821],
@@ -364,7 +656,7 @@ export class App{
                     "coordinates": primusLineCoords
                 }
             }]
-        }
+        };
         var layer = {"id": "primus-route",
                 "type": "line",
                 "source": {
@@ -380,40 +672,21 @@ export class App{
                     "line-width": 6
                 }
         };
-        this.ea.publish(new events.addLayerEvent(layer));
+        this.mapModel.addLayer(layer);
 
         //clearGuideData()        
         //$("#next-stop .row-circle").html('<circle cx=35px cy=50% r="20" stroke="white" stroke-width="4" fill="rgb(0, 200, 0)" />');
-        
-        //if(!map.mapGL.getLayer("primus-route")){
-        //    map.mapGL.addLayer({
-        //        "id": "primus-route",
-        //        "type": "line",
-        //        "source": {
-        //            "type": "geojson",
-        //            "data": firstStopRoute
-        //        },
-        //        "layout": {
-        //            "line-join": "round",
-        //            "line-cap": "round"
-        //        },
-        //        "paint": {
-        //            "line-color": "#0000FF",
-        //            "line-width": 6
-        //        }
-        //    })
-        //}
-
+      
         this.demoState = "atFirstStop";
-    }
+      }
     }
 
     drivingBetweenStops(){
       this.unsubscribeAllTopics();
       if(this.demoState != "driving"){
-          this.ea.publish(new events.removeAllLayersEvent());
-          this.ea.publish(new events.pitchEvent(60));
-          this.ea.publish(new events.positionEvent(59.325662, 18.009497, 65, 0))
+          this.mapModel.removeAllLayers();
+          this.mapModel.map.setPitch(60);
+          this.mapModel.updateMap(59.325662, 18.009497, 65, 0);
           var betweenStopsLineCoords = [
               [18.009497, 59.325662],
               [18.013004, 59.326516],
@@ -448,13 +721,13 @@ export class App{
                   "line-width": 6
               }
           };
-          this.ea.publish(new events.addLayerEvent(layer));
+          this.mapModel.addLayer(layer);
 
-          this.ea.publish(new events.setPreviousStopEvent({
+          this.infoView.setPreviousStop({
             "stopName": "Primusga.."
-          }));
+          });
 
-          this.ea.publish(new events.setNextStopEvent({
+          this.infoView.setNextStop({
             "stopName": "Sofiasko..",
             "time": "11:03",
             "designation": "Läge B",
@@ -463,9 +736,9 @@ export class App{
             "isCancelled": false,
             "noBoarding": false,
             "noAlighting": false
-          }));
+          });
 
-          this.ea.publish(new events.setSecondStopEvent({
+          this.infoView.setSecondStop({
             "stopName": "Mandelpa..",
             "time": "11:07",
             "designation": "Läge A",
@@ -474,9 +747,9 @@ export class App{
             "isCancelled": false,
             "noBoarding": false,
             "noAlighting": false
-          }));
+          });
 
-          this.ea.publish(new events.setThirdStopEvent({
+          this.infoView.setThirdStop({
             "stopName": "Flottbro..",
             "time": "11:16",
             "designation": "",
@@ -485,12 +758,12 @@ export class App{
             "isCancelled": false,
             "noBoarding": true,
             "noAlighting": false
-          }));
+          });
 
-          this.ea.publish(new events.setHeaderEvent("2", "Sofia"));
-          this.ea.publish(new events.setHeaderInfoEvent("+00:42", "1231m"));
-          this.ea.publish(new events.atStopEvent(false));
-
+          this.infoView.setHeader("2", "Sofia");
+          this.infoView.setHeaderInfo("+00:42", "1231m");
+          this.infoView.atStop(false);
+          
           this.demoState ="driving";
       }
       /*   if(demoState != "driving"){
@@ -500,9 +773,9 @@ export class App{
     drivingBetweenStops2(){
       this.unsubscribeAllTopics();
       if(this.demoState != "driving2"){
-          this.ea.publish(new events.removeAllLayersEvent());
-          this.ea.publish(new events.pitchEvent(60));
-          this.ea.publish(new events.positionEvent(59.312347, 18.096730, 195, 0))
+          this.mapModel.removeAllLayers();
+          this.mapModel.map.setPitch(60);
+          this.mapModel.updateMap(59.312347, 18.096730, 195, 0);
           var betweenStopsLineCoords2 = [
             [18.096730, 59.312347],
             [18.096028, 59.311058],
@@ -536,13 +809,13 @@ export class App{
                 "line-width": 6
             }
           }
-          this.ea.publish(new events.addLayerEvent(layer));
+          this.mapModel.addLayer(layer);
 
-          this.ea.publish(new events.setPreviousStopEvent({
+          this.infoView.setPreviousStop({
             "stopName": "Sofiasko.."
-          }));
+          });
 
-          this.ea.publish(new events.setNextStopEvent({
+          this.infoView.setNextStop({
             "stopName": "Mandelpa..",
             "time": "11:07",
             "designation": "Läge A",
@@ -551,9 +824,9 @@ export class App{
             "isCancelled": false,
             "noBoarding": false,
             "noAlighting": false
-          }));
+          });
 
-          this.ea.publish(new events.setSecondStopEvent({
+          this.infoView.setSecondStop({
             "stopName": "Flottbro..",
             "time": "11:16",
             "designation": "",
@@ -562,9 +835,9 @@ export class App{
             "isCancelled": false,
             "noBoarding": true,
             "noAlighting": false
-          }));
+          });
 
-          this.ea.publish(new events.setThirdStopEvent({
+          this.infoView.setThirdStop({
             "stopName": "Broparke..",
             "time": "11:19",
             "designation": "",
@@ -573,12 +846,12 @@ export class App{
             "isCancelled": true,
             "noBoarding": false,
             "noAlighting": false
-          }));
+          });
 
-          this.ea.publish(new events.setHeaderEvent("2", "Sofia"));
-          this.ea.publish(new events.setHeaderInfoEvent("-00:10", "631m"));
-          this.ea.publish(new events.atStopEvent(false));
-
+          this.infoView.setHeader("2", "Sofia");
+          this.infoView.setHeaderInfo("-00:10", "631m");
+          this.infoView.atStop(false);
+          
           this.demoState ="driving2";
       }
     }
@@ -586,9 +859,9 @@ export class App{
     drivingBetweenStops3(){
       this.unsubscribeAllTopics();
       if(this.demoState != "driving3"){
-        this.ea.publish(new events.removeAllLayersEvent());
-        this.ea.publish(new events.pitchEvent(60));
-        this.ea.publish(new events.positionEvent(59.310856, 18.098265, 16, 0))
+        this.mapModel.removeAllLayers();
+        this.mapModel.map.setPitch(60);
+        this.mapModel.updateMap(59.310856, 18.098265, 16, 0);
 
         var betweenStopsLineCoords3 = [
           [18.096730, 59.312347],
@@ -626,14 +899,14 @@ export class App{
               "line-width": 6
           }
         };
-        this.ea.publish(new events.addLayerEvent(layer));
-        this.ea.publish(new events.addMarkerEvent(59.311606, 18.098841));
+        this.mapModel.addLayer(layer);
+        this.mapModel.addMarker(59.311606, 18.098841);
 
-        this.ea.publish(new events.setPreviousStopEvent({
+        this.infoView.setPreviousStop({
           "stopName": "Sofiasko.."
-        }));
+        });
 
-        this.ea.publish(new events.setNextStopEvent({
+        this.infoView.setNextStop({
           "stopName": "Mandelpa..",
           "time": "11:07",
           "designation": "Läge A",
@@ -642,9 +915,9 @@ export class App{
           "isCancelled": false,
           "noBoarding": false,
           "noAlighting": false
-        }));
+        });
 
-        this.ea.publish(new events.setSecondStopEvent({
+        this.infoView.setSecondStop({
           "stopName": "Flottbro..",
           "time": "11:16",
           "designation": "",
@@ -653,9 +926,9 @@ export class App{
           "isCancelled": false,
           "noBoarding": true,
           "noAlighting": false
-        }));
+        });
 
-        this.ea.publish(new events.setThirdStopEvent({
+        this.infoView.setThirdStop({
           "stopName": "Broparke..",
           "time": "11:19",
           "designation": "",
@@ -664,12 +937,11 @@ export class App{
           "isCancelled": true,
           "noBoarding": false,
           "noAlighting": false
-        }));
+        });
 
-        this.ea.publish(new events.setHeaderEvent("2", "Sofia"));
-        this.ea.publish(new events.setHeaderInfoEvent("-00:20", "85m"));
-        this.ea.publish(new events.atStopEvent(false));
-
+        this.infoView.setHeader("2", "Sofia");
+        this.infoView.setHeaderInfo("-00:20", "85");
+        this.infoView.atStop(false);
         this.demoState = "driving3";
       }
     }
@@ -685,10 +957,12 @@ export class App{
       */
       this.unsubscribeAllTopics();
       if(this.demoState != "atSecondStop"){
-          this.ea.publish(new events.removeAllLayersEvent());
-          this.ea.publish(new events.pitchEvent(0));
-          this.ea.publish(new events.positionEvent(59.313216, 18.094038, 105, 0));
-          this.ea.publish(new events.addMarkerEvent(59.313163, 18.094006));
+          
+          this.mapModel.removeAllLayers();
+          this.mapModel.map.setPitch(0);
+          this.mapModel.updateMap(59.313216, 18.094038, 105, 0);
+          this.mapModel.addMarker(59.313163, 18.094006);
+
           var route = {
             "type": "FeatureCollection",
             "features": [{
@@ -718,16 +992,16 @@ export class App{
                 "line-width": 6
             }
           }
-          this.ea.publish(new events.addLayerEvent(layer));
+          this.mapModel.addLayer(layer);
 
-          this.ea.publish(new events.setHeaderEvent("2", "Sofia"));
-          this.ea.publish(new events.setHeaderInfoEvent("+00:10", "0m"));
+          this.infoView.setHeader("2", "Sofia");
+          this.infoView.setHeaderInfo("+00:10", "0m");
 
-          this.ea.publish(new events.setPreviousStopEvent({
+          this.infoView.setPreviousStop({
             stopName: "Primusga.."
-          }));
+          });
 
-          this.ea.publish(new events.setNextStopEvent({
+          this.infoView.setNextStop({
             "stopName": "Sofiasko..",
             "time": "11:03",
             "designation": "Läge B",
@@ -736,9 +1010,9 @@ export class App{
             "isCancelled": false,
             "noBoarding": false,
             "noAlighting": false
-          }));
+          });
 
-          this.ea.publish(new events.setSecondStopEvent({
+          this.infoView.setSecondStop({
             "stopName": "Mandelpa..",
             "time": "11:07",
             "designation": "Läge A",
@@ -747,9 +1021,9 @@ export class App{
             "isCancelled": false,
             "noBoarding": false,
             "noAlighting": false
-          }));
+          });
 
-          this.ea.publish(new events.setThirdStopEvent({
+          this.infoView.setThirdStop({
             "stopName": "Flottbro..",
             "time": "11:16",
             "designation": "",
@@ -758,9 +1032,8 @@ export class App{
             "isCancelled": false,
             "noBoarding": true,
             "noAlighting": false
-          }));
-          this.ea.publish(new events.atStopEvent(true));
-
+          });
+          this.infoView.atStop(true);
 
           this.demoState = "atSecondStop";
       }
@@ -771,9 +1044,9 @@ export class App{
       if(this.demoState != "atThirdStop"){        
           //clearGuideData();
           //slideDownStops();
-          this.ea.publish(new events.removeAllLayersEvent());
-          this.ea.publish(new events.pitchEvent(0));
-          this.ea.publish(new events.positionEvent(59.311550, 18.098672, 15, 0))
+          this.mapModel.removeAllLayers();
+          this.mapModel.map.setPitch(0);
+          this.mapModel.updateMap(59.311550, 18.098672, 15, 0);
 
           var route2 = {
             "type": "FeatureCollection",
@@ -804,14 +1077,14 @@ export class App{
                 "line-width": 6
             }
           }
-          this.ea.publish(new events.addLayerEvent(layer));
-          this.ea.publish(new events.addMarkerEvent(59.311606, 18.098841));
-
-          this.ea.publish(new events.setPreviousStopEvent({
+          this.mapModel.addLayer(layer);
+          this.mapModel.addMarker(59.311606, 18.098841);
+          
+          this.infoView.setPreviousStop({
             "stopName": "Sofiasko.."
-          }));
+          });
 
-          this.ea.publish(new events.setNextStopEvent({
+          this.infoView.setNextStop({
             "stopName": "Mandelpa..",
             "time": "11:07",
             "designation": "Läge A",
@@ -820,9 +1093,9 @@ export class App{
             "isCancelled": false,
             "noBoarding": false,
             "noAlighting": false
-          }));
+          });
 
-          this.ea.publish(new events.setSecondStopEvent({
+          this.infoView.setSecondStop({
             "stopName": "Flottbro..",
             "time": "11:16",
             "designation": "",
@@ -831,9 +1104,9 @@ export class App{
             "isCancelled": false,
             "noBoarding": true,
             "noAlighting": false
-          }));
+          });
 
-          this.ea.publish(new events.setThirdStopEvent({
+          this.infoView.setThirdStop({
             "stopName": "Broparke..",
             "time": "11:19",
             "designation": "",
@@ -842,13 +1115,12 @@ export class App{
             "isCancelled": true,
             "noBoarding": false,
             "noAlighting": false
-          }));
+          });
 
 
-          this.ea.publish(new events.setHeaderEvent("2", "Sofia"));
-          this.ea.publish(new events.setHeaderInfoEvent("-00:59", "0m"));
-          this.ea.publish(new events.atStopEvent(true));
-  
+          this.infoView.setHeader("2", "Sofia");
+          this.infoView.setHeaderInfo("-00:59", "0m");
+          this.infoView.atStop(true);
           this.demoState = "atThirdStop";         
       }
     }
@@ -856,9 +1128,9 @@ export class App{
     atFourthStop(){
       this.unsubscribeAllTopics();
       if(this.demoState != "atFourthStop"){
-        this.ea.publish(new events.removeAllLayersEvent());
-        this.ea.publish(new events.pitchEvent(0));
-        this.ea.publish(new events.positionEvent(59.322356, 17.990093, 37, 0))
+        this.mapModel.removeAllLayers();
+        this.mapModel.map.setPitch(0);
+        this.mapModel.updateMap(59.322356, 17.990093, 37, 0);
 
         var route3 = {
           "type": "FeatureCollection",
@@ -890,14 +1162,15 @@ export class App{
               "line-width": 6
           }
         }
-        this.ea.publish(new events.addLayerEvent(layer));
-        this.ea.publish(new events.addMarkerEvent(59.322428, 17.990164));
 
-        this.ea.publish(new events.setPreviousStopEvent({
+        this.mapModel.addLayer(layer);
+        this.mapModel.addMarker(59.322428, 17.990164);
+
+        this.infoView.setPreviousStop({
           "stopName": "Mandelpa.."
-        }));
+        });
 
-        this.ea.publish(new events.setNextStopEvent({
+        this.infoView.setNextStop({
           "stopName": "Flottbro..",
           "time": "11:16",
           "designation": "",
@@ -906,9 +1179,9 @@ export class App{
           "isCancelled": false,
           "noBoarding": true,
           "noAlighting": false
-        }));
+        });
 
-        this.ea.publish(new events.setSecondStopEvent({
+        this.infoView.setSecondStop({
           "stopName": "Broparke..",
           "time": "11:19",
           "designation": "",
@@ -917,9 +1190,9 @@ export class App{
           "isCancelled": true,
           "noBoarding": false,
           "noAlighting": false
-        }));
+        });
 
-        this.ea.publish(new events.setThirdStopEvent({
+        this.infoView.setThirdStop({
           "stopName": "",
           "time": "",
           "designation": "",
@@ -928,12 +1201,11 @@ export class App{
           "isCancelled": false,
           "noBoarding": false,
           "noAlighting": false
-        }));
+        });
 
-        
-        this.ea.publish(new events.setHeaderEvent("2", "Sofia"));
-        this.ea.publish(new events.setHeaderInfoEvent("+00:30", "0m"));
-        this.ea.publish(new events.atStopEvent(true));
+        this.infoView.setHeader("2", "Sofia");
+        this.infoView.setHeaderInfo("+00:30", "0m");
+        this.infoView.atStop(true);
 
         this.demoState = "atFourthStop";
 
@@ -943,11 +1215,13 @@ export class App{
     journeyEnd(){
       this.unsubscribeAllTopics();
       if(this.demoState != "journeyEnd"){
-        this.ea.publish(new events.removeAllLayersEvent());
-        this.ea.publish(new events.setHeaderEvent("", "Ej i trafik"));
-        this.ea.publish(new events.setHeaderInfoEvent("", ""));
-        this.ea.publish(new events.pitchEvent(60));
-        this.ea.publish(new events.positionEvent(59.322497, 17.990307, 35, 0));
+
+        this.mapModel.removeAllLayers();
+        this.mapModel.map.setPitch(60);
+        this.mapModel.updateMap(59.322497, 17.990307, 35, 0);
+
+        this.infoView.setHeader("", "Ej i trafik");
+        this.infoView.setHeaderInfo("", "");
 
         var data = {
           "stopName": "",
@@ -959,13 +1233,13 @@ export class App{
           "noBoarding": false,
           "noAlighting": false
         }
-        this.ea.publish(new events.setPreviousStopEvent(data));
+        this.infoView.setPreviousStop(data);
 
-        this.ea.publish(new events.setNextStopEvent(data));
+        this.infoView.setNextStop(data);
 
-        this.ea.publish(new events.setSecondStopEvent(data));
+        this.infoView.setSecondStop(data);
 
-        this.ea.publish(new events.setThirdStopEvent(data));
+        this.infoView.setThirdStop(data);
 
         this.demoState = "journeyEnd";
     }
