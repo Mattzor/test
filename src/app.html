@@ -1,19 +1,70 @@
 <template>
-  <require from="./map-journeyguide"></require> 
-  <require from="./journey-guide"></require>
+    <require from="./style.css"></require>
+    <require from="./map-journeyguide"></require> 
+    <require from="./journey-guide"></require>
 
-  <div class="container">
-    <input value.bind="latitude" />
-    <input value.bind="longitude" />
-    <button type="button" click.delegate="callChild()">text</button>
 
-    <div class="jg-map">
-      <map-journeyguide view-model.ref="mapModel"></map-journeyguide>
+    <div class="temp-wrapper">
+  
+        <div class="container">
+            <!--
+            <input value.bind="latitude" />
+            <input value.bind="longitude" />
+            <button type="button" click.delegate="callChild()">text</button>
+            -->
+            <div class="static-bus-div">
+              <svg>
+                <polygon class="bus-arrow" points="0,45 25,0 50,45 25,35" style="stroke:rgb(0, 191, 173);fill:rgb(0, 191, 173)" />							
+                <line x1="25" y1="0" x2="25" y2="25" style="stroke:rgb(0,160, 140); stroke-width:2;" />
+                <line x1="25" y1="25" x2="50" y2="45" style="stroke:rgb(0,160, 140); stroke-width:2;" />
+                <line x1="25" y1="25" x2="0" y2="45" style="stroke:rgb(0,160, 140); stroke-width:2;" />
+      
+                <!--box-->
+                <!--
+                <line x1="0" y1="0" x2="50" y2="0" style="stroke: black;" />
+                <line x1="50" y1="0" x2="50" y2="45" style="stroke: black;" />
+                <line x1="50" y1="45" x2="0" y2="45" style="stroke: black;" />
+                <line x1="0" y1="45" x2="0" y2="0" style="stroke: black;" />
+                -->
+              </svg>
+            </div>
+
+
+            <div class="map-container">
+                <map-journeyguide view-model.ref="mapModel"></map-journeyguide>
+            </div>
+           
+
+            <div id="journeyguide">
+                <journey-guide></journey-guide>
+            </div>
+        
+        </div>
+
+
+        <div class="state-buttons">
+            <h3>"Buss tillstånd"</h3>
+            <button type="button" click.delegate="journeyStart()">Tur Start, innan första hållplatsen</button>
+            <div class="state-buttons-inline">
+              <button type="button" click.delegate="atFirstStop()">Turstart, Första Hållplatsen</button>
+              <button type="button" onclick="firstStopInfoWindow()">Toggla inforuta</button>
+            </div>
+            <button type="button" click.delegate="drivingBetweenStops()">Körning, mellan hållplatser</button>
+            <button type="button" click.delegate="atSecondStop()">Andra Hållplatsen</button>
+            <button type="button" click.delegate="drivingBetweenStops2()">Körning, mellan hållplatser</button>
+            <button type="button" click.delegate="drivingBetweenStops3()">Körning, nära hållplats</button>
+            <div class="state-buttons-inline">
+              <button type="button" click.delegate="atThirdStop()">Tredje Hållplatsen Samtrafik</button>
+              <button type="button" onclick="secondStopInfoWindow()">Toggla inforuta</button>
+            </div>
+            <button type="button" click.delegate="atFourthStop()">Fjärde Hållplatsen, Regler/samtrafik</button>
+            <button type="button" click.delegate="journeyEnd()">Tur Slut</button>
+            <h3>Välj MQTT broker</h3>
+            <button type="button" click.delegate="useLocalMQTT()">Anslut till lokal MQTT broker</button>
+            <button type="button" click.delegate="useVrMQTT()">Anslut till VehicleReplicator MQTT broker</button>
+          </div>
+       
+
     </div>
-    <div class="j-guide">
-      <journey-guide></journey-guide>
-    </div>
 
-    
-  </div>
 </template>

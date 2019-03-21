@@ -1,4 +1,457 @@
-#map{
-    width: 1000px;
+body {
+    /*background: #404040;
+    color: #f8f8f8;
+    */
+    font: 500 20px/26px 'Helvetica Neue', Helvetica, Arial, Sans-serif;
+    margin: 0;
+    padding: 0;
+    /*height: 700px;
+    width: 1000px;*/
+  }
+  
+  .temp-wrapper{
+    width: 1520px;
     height: 700px;
-}
+  }
+  
+  .container{
+    height: 700px;
+    width: 1000px;
+    position: absolute;
+    overflow: hidden;  
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+  }
+  
+  .static-bus-div{
+    position: absolute;
+    top: 567px;
+    left: 300px;
+    width: 50px;
+    height: 50px;
+    z-index: 1;
+    overflow: hidden;
+  }
+  
+  .map {    
+    position: relative;
+    overflow: hidden;
+    float: left;
+    height: 1180px;
+    width: 650px;
+    z-index: 0;
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+  }
+  
+  .stoppoint-info{  
+    background: rgb(89, 93, 111);
+    color: white;  
+  
+    position: absolute;
+    z-index: 2;
+    top: 450px;  
+    left: 650px;
+    overflow: hidden;
+    width: 650px;
+    height: 250px;
+  
+    transition:         left 0.5s ease;
+    -moz-transition:    left 0.5s ease;
+    -ms-transition:     left 0.5s ease;
+    -o-transition:      left 0.5s ease;
+    -webkit-transition: left 0.5s ease;
+  }
+  
+  
+  .stoppoint-info-content{    
+    position: absolute;  
+    width:100%;
+    height:100%;
+  }
+  
+  .stoppoint-info-content > span{
+    margin-top: 15px;
+    font-size: 24px;
+    color: white;
+  }
+  
+  .time-count-down{    
+    position: absolute;    
+    top: 30px;
+    right: 0px;
+  }
+  
+  .time-count-down-span{
+    background: red;
+    color: white;
+    font-size: 72px;
+    padding: 5px 5px 5px 5px;
+  }
+  
+  .sp-header{
+    position: absolute;
+    top: 20px;
+    /*left: 175px;*/
+    left: 10px;
+    color: white;
+    font-size: 32px;
+  }
+  
+  .interconnections {
+    position: absolute;
+    top: 35px;
+    left: 10px;
+    margin-top: 25px;  
+    font-size: 24px;
+    width: 100%;
+  }
+  
+  .interconnection-row{
+    width: 100%;
+    border-radius: 2px;  
+    margin-bottom: 10px;
+    display: inline-block;
+  }
+  
+  .interconnection-row > span{
+    margin-top: 5px;
+    margin-left: 5px;  
+    display: inline-block;
+  }
+  
+  
+  #journeyguide{
+    position: relative;
+    float: right;  
+    height: 100%;
+    width: 350px;
+    background: rgb(89, 93, 111); 
+    z-index: 3;
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+  }
+  
+  .journeyguide-header{    
+    position:relative;
+    color: white;
+    /*border-bottom: solid;
+    border-color: #9195a3;  /*rgb(118, 113, 113);*/
+    margin-top: 10px;
+    margin-bottom: 15px;
+    padding-bottom: 5px;
+    width: 100%;
+    height: 110px;
+  }
+  
+  .header-text{
+    text-align: center;
+    width: 100%;
+    height: 30%;
+    border-bottom: solid;
+    border-color: #9195a3;
+  }
+  
+  .header-line-number{
+    float: left;  
+    font-size: 30px;
+    margin-left: 10px;
+  }
+  
+  #header-line-text{
+    text-align: center;  
+    font-size: 40px;  
+  }
+  
+  
+  .header-info-boxes{
+    position: absolute;  
+    display: inline-block;
+    height: 70%;
+    width: 100%;
+    /*border-bottom: solid;
+    border-color: #9195a3;  /*rgb(118, 113, 113);*/
+  }
+  
+  .time-schedule{  
+    text-align: center;
+    position: relative;
+    float: left;
+    width: 50%;
+    height: 100%;
+    font-size: 54px;  
+    /*border-right: solid;*/
+    border-color: #9195a3;
+    background: green;
+  }
+  
+  .time-schedule-span{
+    position: relative;
+    top: 25px;
+  }
+  
+  .meters-left{
+    text-align: center;
+    position: relative;
+    float: right;
+    width: 50%;
+    height: 100%;
+    font-size: 54px;
+    background: blue;
+  }
+  
+  .meters-left-span{
+    position: relative;
+    top: 25px;
+  }
+  
+  .journey-guide-content{
+    height: 90%;  
+    overflow-y: scroll;  
+  }
+  
+  ::-webkit-scrollbar{
+    display: none;
+  }
+  
+  .background{
+    position: absolute;
+    height: 100%;
+    width: 100%;
+  }
+  
+  #arrows{  
+    height: 100%;
+    width: 100%;
+  }
+  
+  .row{
+    position: relative;
+    /*display: inline-block;*/
+    height: 17%;
+    width: 100%;
+    z-index: 1;
+    margin-top: 20px;
+    padding-top: 20px;
+  }
+  
+  .sub-top-row{
+    display: inline-block;
+    height: 40%;
+    width: 100%
+  }
+  
+  .sub-bottom-row{
+    display: inline-block;
+    height: 40%;
+    width: 100%;
+  }
+  
+  .row-circle{  
+    width: 15%;
+    height: 30%;  
+    padding-right: 10px;
+    overflow: visible;    
+  }
+
+  .notVisible{
+    visibility: hidden;
+  }
+
+  .row-circle > circle{
+      overflow: visible;
+      height: 100%;
+      width: 100%;
+  }
+  
+  .time{  
+    width: 10%;
+    margin-left: 10px;
+    padding-right: 5px;  
+    padding-bottom: 5px;
+  }
+  
+  .designation{
+    max-width: 50px;
+  }
+  
+  .icons{
+    float: right;
+    margin-right: 10px;
+    width: 145px;
+  }
+  
+  .no-boarding{
+    display: inline-block;  
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+    height: 32px;
+    width: 32px;
+  }
+  
+  .no-boarding-image{
+    background-image: url("../img/no-alighting.png");
+    background-size: contain;  
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+    width: 32px;
+    height: 32px;
+  }
+  
+  .no-alighting{
+    display: inline-block;
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+    height: 32px;
+    width: 32px;  
+  }
+  
+  .no-alighting-image{
+    background-image: url("../img/no-boarding.png");
+    background-size: contain;
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+    width: 32px;
+    height: 32px;
+  }
+  
+  .interconnection{  
+    display: inline-block;  
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+    height: 32px;
+    width: 32px;
+  }
+  
+  .interconnection-image{  
+    background-image: url("../img/samtrafik.png");
+    background-size: contain;  
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+    width: 32px;
+    height: 32px;
+  }
+  
+  .regulation-stop{  
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+  }
+  
+  .regulation-stop-image{  
+    background-image: url("../img/utjamning.png");
+    background-size: contain;  
+    margin: 0 0 0 0;
+    padding: 0 0 0 0;
+    width: 32px;
+    height: 32px;
+  }
+  
+  .stop-point {  
+    margin-left: 70px;     
+    width: 50%;    
+  }
+  
+  #previous-stop .stop-point{
+    margin-left: 0px;
+  }
+  
+  #third-stop{
+    color: #9195a3;
+  }
+  
+  #second-stop{
+    color:#c5c7ce;
+  }
+  
+  #next-stop{
+    color:white;
+  }
+  
+  #next-stop .stop-point{
+    color: white;
+    font-size: 45px;
+  }
+  
+  #previous-stop{
+    padding-top: 40px;
+  }
+  
+  #previous-stop .stop-point{
+    color: #9195a3;
+  }
+  
+  .bus-div{
+    width: 50px;
+    height: 50px;
+  }
+  
+  .bus--div{
+    background-image: url("../img/bus.png");
+    background-size: cover;
+    width: 50px;
+    height: 50px;
+    /*
+    transition:         all 1.4s linear;
+    -moz-transition:    all 1.4s linear;
+    -ms-transition:     all 1.4s linear;
+    -o-transition:      all 1.4s linear;
+    -webkit-transition: all 1.4s linear;
+    */
+  }
+  
+  .mapboxgl-popup-close-button{
+    display: none;
+  }
+  
+  .mapboxgl-popup-content{
+    padding: 0;
+    background: green;
+    color: white;
+  }
+  
+  
+  
+  
+  
+  .state-buttons{
+    float: right;
+    font-size: 32px;
+    
+  }
+  
+  .state-buttons > button{
+    display: block;
+    margin-bottom: 10px;
+    font-size: 24px;
+  }
+  
+  .state-buttons-inline > button{  
+    margin-bottom: 10px;
+    font-size: 24px;
+  }
+  
+  .state-buttons-inline{
+    display: inline-block;
+  }
+  
+  
+  .temp-marker{
+    background-image: url("../img/H.png");
+    background-size: cover;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+  }
+  
+  .temp-marker-cancelled{
+    background-image: url("../img/H-Cancelled.png");
+    background-size: cover;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+  }
+  

@@ -1,3 +1,99 @@
 <template>
-    <h2>journeyguide placeholder</h2>
+    <require from="./style.css"></require>
+    <div class="journeyguide-header">
+            <div class="header-text">
+                <span id="header-line-num" class="header-line-number">${lineNumber}</span>
+                <span id="header-line-text">${lineName}</span>
+            </div>
+            <div class="header-info-boxes">
+                <div class="time-schedule"><span class="time-schedule-span">${timeSchedule}</span></div>
+                <div class="meters-left"><span class="meters-left-span">${metersLeft}</span></div>
+            </div>
+        </div>
+
+        <div class="journey-guide-content">
+
+            <div class="background" >
+                <svg id="arrows">
+                    <polygon 
+                        points="20,25 35,14 50,25 40,25 50,650 20,650 30,25" 
+                        style="stroke:white;fill:white;"   
+                    />
+                    <polygon class="bus-arrow"
+                        points="10,470 35,425 60,470 35,460"
+                        style="stroke:rgb(0, 191, 173);fill:rgb(0, 191, 173)"
+                    />
+                    <line x1="35" y1="425" x2="35" y2="450" style="stroke:rgb(0, 160, 140); stroke-width:2;" />
+                    <line x1="35" y1="450" x2="60" y2="470" style="stroke:rgb(0, 160, 140); stroke-width:2;" />
+                    <line x1="35" y1="450" x2="10" y2="470" style="stroke:rgb(0, 160, 140); stroke-width:2;" />
+                </svg>
+            </div>
+
+            <div class="contentMover" css="${contentMoverCss}"></div>
+            
+            <div id="third-stop" class="row">						
+                <div class="sub-top-row">
+                    <svg class="row-circle ${thirdStopCircle}">	
+                        <circle cx=35px cy=65% r="10" stroke="white" stroke-width="4" fill="#00BFAD" />                        	                        				
+                    </svg>
+                    <span class="time">${thirdStopTime}</span>							
+                    <span class="designation">${thirdStopDesignation}</span>
+                    <div class="icons">
+                        <div class="no-boarding ${thirdStopNoBoarding}"></div>
+                        <div class="no-alighting ${thirdStopNoAlighting}"></div>
+                        <div class="regulation-stop ${thirdStopRegulatedStop}"></div>
+                        <div class="interconnection ${thirdStopInterconnections}"></div>
+                    </div>
+                </div>								
+                <div class="sub-bottom-row">
+                    <span class="stop-point">${thirdStopName}</span>
+                </div>
+            </div>
+
+            <div id="second-stop" class="row">						
+                <div class="sub-top-row">
+                    <svg class="row-circle ${secondStopCircle}">
+                        <circle cx=35px cy=65% r="14" stroke="white" stroke-width="4" fill="#00BFAD" />						                        
+                    </svg>						
+                    <span class="time">${secondStopTime}</span>							
+                    <span class="designation">${secondStopDesignation}</span>
+                    <div class="icons">
+                            <div class="no-boarding ${secondStopNoBoarding}"></div>
+                            <div class="no-alighting ${secondStopNoAlighting}"></div>
+                            <div class="regulation-stop ${secondStopRegulatedStop}"></div>
+                            <div class="interconnection ${secondStopInterconnections}"></div>
+                    </div>
+                </div>
+                <div class="sub-bottom-row">
+                    <span class="stop-point">${secondStopName}</span>
+                </div>
+            </div>
+
+            <div id="next-stop" class="row">
+                <div class="sub-top-row">
+                    <svg class="row-circle ${nextStopCircle}">	
+                        <circle cx=35px cy=50% r="20" stroke="white" stroke-width="4" fill="#00BFAD" /> 
+                    </svg>						
+                    <span class="time">${nextStopTime}</span>
+                    <span class="designation"${nextStopDesignation}></span>
+                    <div class="icons">
+                            <div class="no-boarding ${nextStopNoBoarding}"></div>
+                            <div class="no-alighting ${nextStopNoAlighting}"></div>
+                            <div class="regulation-stop ${nextStopRegulatedStop}"></div>
+                            <div class="interconnection ${nextStopInterconnections}"></div>
+                    </div>
+                </div>
+                <div class="sub-bottom-row">
+                    <span class="stop-point">${nextStopName}</span>
+                </div>
+            </div>
+
+            <div id="previous-stop" class="row">
+                <svg class="row-circle">							
+                </svg>
+                <span class="time"></span>						
+                <span class="stop-point">${previousStopName}</span>
+            </div>
+            
+        </div>
 </template>

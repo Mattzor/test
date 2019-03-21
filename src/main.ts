@@ -1,5 +1,5 @@
 /// <reference types="aurelia-loader-webpack/src/webpack-hot-interface"/>
-import '../styles/styles.css';
+//import '../styles/style.css';
 import 'bootstrap/dist/css/bootstrap.css';
 import 'bootstrap';
 import {Aurelia} from 'aurelia-framework'
